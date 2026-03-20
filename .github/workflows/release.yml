@@ -14,6 +14,9 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -117,36 +120,30 @@ jobs:
           fi
 
           # ── Contributors (Name + @username) ──────────────
-          # Tries: 1) noreply email pattern  2) GitHub API email lookup
+          # Uses the commits API which returns the GitHub login directly.
+          # Deduplicates by login (not name, since one person can have
+          # multiple git author names like "Dopey" and "ThePrimeJnr").
           CONTRIBUTORS=""
-          git log "$RANGE" --pretty=format:"%aN||%aE" --no-merges 2>/dev/null | sort -u -t'|' -k1,1 > /tmp/authors.txt || true
 
+          # Get unique GitHub logins from commits in this release
+          gh api "repos/${GITHUB_REPOSITORY}/commits?per_page=100&sha=${TAG}" \
+            -q '.[] | "\(.author.login // "")||\(.commit.author.name)"' \
+            2>/dev/null | sort -u -t'|' -k1,1 > /tmp/authors.txt || true
+
+          declare -A SEEN_LOGINS
           while IFS= read -r entry; do
             [ -z "$entry" ] && continue
-            author=$(echo "$entry" | cut -d'|' -f1)
-            email=$(echo "$entry" | cut -d'|' -f3)
+            login=$(echo "$entry" | cut -d'|' -f1)
+            name=$(echo "$entry" | cut -d'|' -f3)
 
-            [ "$author" = "dependabot[bot]" ] && continue
+            [ -z "$login" ] && continue
+            [ "$login" = "dependabot[bot]" ] && continue
+            [ "$login" = "web-flow" ] && continue
 
-            GH_USER=""
-
-            # Method 1: GitHub noreply email (123+username@users.noreply.github.com)
-            GH_USER=$(echo "$email" | grep -oP '\d+\+\K[^@]+(?=@users.noreply.github.com)' 2>/dev/null || echo "")
-
-            # Method 2: Look up email via GitHub API
-            if [ -z "$GH_USER" ] && [ -n "$email" ]; then
-              GH_USER=$(gh api "/search/users?q=$email+in:email" -q '.items[0].login' 2>/dev/null || echo "")
-            fi
-
-            # Method 3: Search by name as fallback
-            if [ -z "$GH_USER" ] && [ -n "$author" ]; then
-              GH_USER=$(gh api "/search/users?q=$author+in:name" -q '.items[0].login' 2>/dev/null || echo "")
-            fi
-
-            if [ -n "$GH_USER" ]; then
-              CONTRIBUTORS="${CONTRIBUTORS}- **${author}** ([@${GH_USER}](https://github.com/${GH_USER}))\n"
-            else
-              CONTRIBUTORS="${CONTRIBUTORS}- **${author}**\n"
+            # Deduplicate by login
+            if [ -z "${SEEN_LOGINS[$login]+x}" ]; then
+              SEEN_LOGINS[$login]=1
+              CONTRIBUTORS="${CONTRIBUTORS}- **${name}** ([@${login}](https://github.com/${login}))\n"
             fi
           done < /tmp/authors.txt
 
@@ -182,7 +179,7 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v2.6.1
         with:
           name: ${{ steps.notes.outputs.tag }}
           body: ${{ steps.notes.outputs.body }}
