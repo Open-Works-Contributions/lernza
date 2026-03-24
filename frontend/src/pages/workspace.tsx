@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useParams, useNavigate } from "react-router-dom"
 import {
   ArrowLeft,
   Plus,
@@ -25,14 +26,13 @@ import {
 } from "@/lib/mock-data"
 import { formatTokens } from "@/lib/utils"
 
-interface WorkspaceViewProps {
-  workspaceId: number
-  onBack: () => void
-}
-
 type Tab = "milestones" | "enrollees"
 
-export function WorkspaceView({ workspaceId, onBack }: WorkspaceViewProps) {
+export function WorkspaceView() {
+  const { id } = useParams()
+  const workspaceId = Number(id)
+  const navigate = useNavigate()
+  
   const [activeTab, setActiveTab] = useState<Tab>("milestones")
   const [expandedMilestone, setExpandedMilestone] = useState<number | null>(
     null
@@ -67,7 +67,7 @@ export function WorkspaceView({ workspaceId, onBack }: WorkspaceViewProps) {
     return (
       <div className="mx-auto max-w-6xl px-4 sm:px-6 py-20 text-center">
         <h2 className="text-2xl font-black mb-4">Quest not found</h2>
-        <Button variant="outline" onClick={onBack}>
+        <Button variant="outline" onClick={() => navigate("/dashboard")}>
           Go back
         </Button>
       </div>
@@ -81,7 +81,7 @@ export function WorkspaceView({ workspaceId, onBack }: WorkspaceViewProps) {
 
       {/* Back button */}
       <button
-        onClick={onBack}
+        onClick={() => navigate("/dashboard")}
         className="flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground mb-6 transition-colors cursor-pointer group"
       >
         <div className="w-7 h-7 border-[2px] border-black bg-white shadow-[2px_2px_0_#000] flex items-center justify-center neo-press hover:shadow-[3px_3px_0_#000] active:shadow-[1px_1px_0_#000] group-hover:bg-primary transition-colors">

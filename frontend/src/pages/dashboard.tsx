@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import {
   Plus,
   Users,
@@ -24,11 +25,8 @@ import { formatTokens } from "@/lib/utils"
 // The first two workspaces share the same owner — treat them as "owned"
 const MOCK_OWNER = "GBXR...K2YQ"
 
-interface DashboardProps {
-  onSelectWorkspace: (id: number) => void
-}
-
-export function Dashboard({ onSelectWorkspace }: DashboardProps) {
+export function Dashboard() {
+  const navigate = useNavigate()
   const { connected, connect, shortAddress } = useWallet()
   const [filter, setFilter] = useState<"all" | "owned" | "enrolled">("all")
 
@@ -129,7 +127,8 @@ export function Dashboard({ onSelectWorkspace }: DashboardProps) {
           </div>
           <Button
             variant="secondary"
-            className="shimmer-on-hover group flex-shrink-0"
+            className="shimmer-on-hover group flex-shrink-0 cursor-pointer"
+            onClick={() => navigate("/quest/create")}
           >
             <Plus className="h-4 w-4" />
             New Quest
@@ -183,7 +182,7 @@ export function Dashboard({ onSelectWorkspace }: DashboardProps) {
             <Card
               key={ws.id}
               className={`card-tilt cursor-pointer group animate-fade-in-up stagger-${i + 1}`}
-              onClick={() => onSelectWorkspace(ws.id)}
+              onClick={() => navigate(`/quest/${ws.id}`)}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
@@ -275,7 +274,10 @@ export function Dashboard({ onSelectWorkspace }: DashboardProps) {
                   : "You haven't enrolled in any quests yet. Browse available quests to get started."}
             </p>
             {filter === "all" || filter === "owned" ? (
-              <Button className="shimmer-on-hover">
+              <Button 
+                className="shimmer-on-hover cursor-pointer"
+                onClick={() => navigate("/quest/create")}
+              >
                 <Plus className="h-4 w-4" />
                 Create Quest
               </Button>

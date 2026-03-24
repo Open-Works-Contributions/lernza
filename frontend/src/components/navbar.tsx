@@ -2,18 +2,14 @@ import { useState } from "react"
 import { Wallet, LogOut, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useWallet } from "@/hooks/use-wallet"
+import { useLocation, useNavigate } from "react-router-dom"
 import { cn } from "@/lib/utils"
 
 const NAV_ITEMS = [
-  { key: "landing", label: "Home" },
-  { key: "dashboard", label: "Dashboard" },
-  { key: "profile", label: "Profile" },
+  { key: "landing", path: "/", label: "Home" },
+  { key: "dashboard", path: "/dashboard", label: "Dashboard" },
+  { key: "profile", path: "/profile", label: "Profile" },
 ] as const
-
-interface NavbarProps {
-  activePage: string
-  onNavigate: (page: string) => void
-}
 
 function LogoMark({ className }: { className?: string }) {
   return (
@@ -34,12 +30,18 @@ function LogoMark({ className }: { className?: string }) {
   )
 }
 
-export function Navbar({ activePage, onNavigate }: NavbarProps) {
+export function Navbar() {
   const { connected, shortAddress, connect, disconnect, loading } = useWallet()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const navigate = useNavigate()
+  const location = useLocation()
 
-  const handleNavigate = (page: string) => {
-    onNavigate(page)
+  const activePage = location.pathname === "/" 
+    ? "landing" 
+    : location.pathname.split("/")[1]
+
+  const handleNavigate = (path: string) => {
+    navigate(path)
     setMobileOpen(false)
   }
 
@@ -50,7 +52,7 @@ export function Navbar({ activePage, onNavigate }: NavbarProps) {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         {/* Logo */}
         <button
-          onClick={() => handleNavigate("landing")}
+          onClick={() => handleNavigate("/")}
           className="flex items-center gap-2 cursor-pointer group"
         >
           <LogoMark className="h-8 w-8 transition-transform group-hover:scale-110" />
@@ -62,7 +64,7 @@ export function Navbar({ activePage, onNavigate }: NavbarProps) {
           {visibleItems.map((item) => (
             <button
               key={item.key}
-              onClick={() => handleNavigate(item.key)}
+              onClick={() => handleNavigate(item.path)}
               className={cn(
                 "px-4 py-2 text-sm font-bold transition-all cursor-pointer border-[2px] animated-underline",
                 activePage === item.key
@@ -122,7 +124,7 @@ export function Navbar({ activePage, onNavigate }: NavbarProps) {
             {visibleItems.map((item) => (
               <button
                 key={item.key}
-                onClick={() => handleNavigate(item.key)}
+                onClick={() => handleNavigate(item.path)}
                 className={cn(
                   "w-full text-left px-4 py-3 text-sm font-bold transition-all cursor-pointer border-[2px]",
                   activePage === item.key
