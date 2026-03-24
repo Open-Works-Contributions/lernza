@@ -55,7 +55,7 @@ impl QuestContract {
 
         let id: u32 = env.storage().instance().get(&DataKey::NextId).unwrap_or(0);
 
-        let ws = QuestInfo {
+        let quest = QuestInfo {
             id,
             owner: owner.clone(),
             name,
@@ -64,7 +64,7 @@ impl QuestContract {
             created_at: env.ledger().timestamp(),
         };
 
-        env.storage().persistent().set(&DataKey::Quest(id), &ws);
+        env.storage().persistent().set(&DataKey::Quest(id), &quest);
         env.storage()
             .persistent()
             .set(&DataKey::Enrollees(id), &Vec::<Address>::new(&env));
@@ -76,8 +76,8 @@ impl QuestContract {
 
     /// Add an enrollee to a quest. Owner only.
     pub fn add_enrollee(env: Env, quest_id: u32, enrollee: Address) -> Result<(), Error> {
-        let ws = Self::load_quest(&env, quest_id)?;
-        ws.owner.require_auth();
+        let quest = Self::load_quest(&env, quest_id)?;
+        quest.owner.require_auth();
 
         let mut enrollees = Self::load_enrollees(&env, quest_id);
 
@@ -98,8 +98,8 @@ impl QuestContract {
 
     /// Remove an enrollee from a quest. Owner only.
     pub fn remove_enrollee(env: Env, quest_id: u32, enrollee: Address) -> Result<(), Error> {
-        let ws = Self::load_quest(&env, quest_id)?;
-        ws.owner.require_auth();
+        let quest = Self::load_quest(&env, quest_id)?;
+        quest.owner.require_auth();
 
         let enrollees = Self::load_enrollees(&env, quest_id);
         let mut found = false;
@@ -127,9 +127,9 @@ impl QuestContract {
 
     /// Get quest info by ID.
     pub fn get_quest(env: Env, quest_id: u32) -> Result<QuestInfo, Error> {
-        let ws = Self::load_quest(&env, quest_id)?;
+        let quest = Self::load_quest(&env, quest_id)?;
         Self::bump(&env, quest_id);
-        Ok(ws)
+        Ok(quest)
     }
 
     /// Get all enrollees for a quest.
