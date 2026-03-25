@@ -20,6 +20,13 @@ pub trait QuestContractTrait {
 }
 
 #[contracttype]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Visibility {
+    Public = 0,
+    Private = 1,
+}
+
+#[contracttype]
 #[derive(Clone, Debug, PartialEq)]
 pub struct QuestInfo {
     pub id: u32,
@@ -28,6 +35,7 @@ pub struct QuestInfo {
     pub description: String,
     pub token_addr: Address,
     pub created_at: u64,
+    pub visibility: Visibility,
 }
 
 // Milestone contract: define milestones per quest, track completions.
@@ -171,25 +179,38 @@ impl MilestoneContract {
     pub fn set_distribution_mode(
         env: Env,
         owner: Address,
-        workspace_id: u32,
+        quest_id: u32,
         mode: DistributionMode,
         flat_reward: i128,
     ) -> Result<(), Error> {
         owner.require_auth();
-        Self::require_owner(&env, workspace_id, &owner)?;
+        
+        // Validate owner via cross-contract call
+        let quest_contract_addr: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::QuestContract)
+            .ok_or(Error::NotInitialized)?;
+
+        let quest_client = QuestClient::new(&env, &quest_contract_addr);
+        let quest_info = quest_client.get_quest(&quest_id);
+        
+        if quest_info.owner != owner {
+            return Err(Error::OwnerMismatch);
+        }
 
         if matches!(mode, DistributionMode::Flat) && flat_reward <= 0 {
             return Err(Error::InvalidAmount);
         }
 
-        let mode_key = DataKey::Mode(workspace_id);
+        let mode_key = DataKey::Mode(quest_id);
         env.storage().persistent().set(&mode_key, &mode);
         env.storage()
             .persistent()
             .extend_ttl(&mode_key, THRESHOLD, BUMP);
 
         if matches!(mode, DistributionMode::Flat) {
-            let flat_key = DataKey::FlatReward(workspace_id);
+            let flat_key = DataKey::FlatReward(quest_id);
             env.storage().persistent().set(&flat_key, &flat_reward);
             env.storage()
                 .persistent()
@@ -240,7 +261,7 @@ impl MilestoneContract {
         let mode: DistributionMode = env
             .storage()
             .persistent()
-            .get(&DataKey::Mode(workspace_id))
+            .get(&DataKey::Mode(quest_id))
             .unwrap_or(DistributionMode::Custom);
 
         let reward = match mode {
@@ -248,10 +269,10 @@ impl MilestoneContract {
             DistributionMode::Flat => env
                 .storage()
                 .persistent()
-                .get(&DataKey::FlatReward(workspace_id))
+                .get(&DataKey::FlatReward(quest_id))
                 .unwrap_or(milestone.reward_amount),
             DistributionMode::Competitive(max_winners) => {
-                let cnt_key = DataKey::MilestoneCompletionCount(workspace_id, milestone_id);
+                let cnt_key = DataKey::MilestoneCompletionCount(quest_id, milestone_id);
                 let cnt: u32 = env.storage().persistent().get(&cnt_key).unwrap_or(0);
                 env.storage().persistent().set(&cnt_key, &(cnt + 1));
                 env.storage()

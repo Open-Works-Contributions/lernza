@@ -50,6 +50,7 @@ fn create_ms(
             &String::from_str(env, "Quest"),
             &String::from_str(env, "Quest description"),
             &Address::generate(env), // token address
+            &quest::Visibility::Public,
         );
     }
     
@@ -217,9 +218,9 @@ fn test_zero_reward_milestone() {
 
 #[test]
 fn test_custom_mode_uses_per_milestone_amounts() {
-    let (env, client, owner) = setup();
-    create_ms(&env, &client, &owner, 0, "Task 1", 100);
-    create_ms(&env, &client, &owner, 0, "Task 2", 200);
+    let (env, client, quest_client, owner) = setup();
+    create_ms(&env, &client, &quest_client, &owner, 0, "Task 1", 100);
+    create_ms(&env, &client, &quest_client, &owner, 0, "Task 2", 200);
 
     client.set_distribution_mode(&owner, &0, &DistributionMode::Custom, &0);
 
@@ -231,9 +232,9 @@ fn test_custom_mode_uses_per_milestone_amounts() {
 
 #[test]
 fn test_flat_mode_equal_rewards() {
-    let (env, client, owner) = setup();
-    create_ms(&env, &client, &owner, 0, "Task 1", 100);
-    create_ms(&env, &client, &owner, 0, "Task 2", 999); // per-milestone amount is ignored
+    let (env, client, quest_client, owner) = setup();
+    create_ms(&env, &client, &quest_client, &owner, 0, "Task 1", 100);
+    create_ms(&env, &client, &quest_client, &owner, 0, "Task 2", 999); // per-milestone amount is ignored
 
     client.set_distribution_mode(&owner, &0, &DistributionMode::Flat, &50);
 
@@ -245,8 +246,8 @@ fn test_flat_mode_equal_rewards() {
 
 #[test]
 fn test_flat_mode_invalid_amount() {
-    let (env, client, owner) = setup();
-    create_ms(&env, &client, &owner, 0, "Task", 100);
+    let (env, client, quest_client, owner) = setup();
+    create_ms(&env, &client, &quest_client, &owner, 0, "Task", 100);
 
     let result = client.try_set_distribution_mode(&owner, &0, &DistributionMode::Flat, &0);
     assert_eq!(result, Err(Ok(Error::InvalidAmount)));
@@ -254,8 +255,8 @@ fn test_flat_mode_invalid_amount() {
 
 #[test]
 fn test_competitive_mode_first_winners_rewarded() {
-    let (env, client, owner) = setup();
-    create_ms(&env, &client, &owner, 0, "Task", 100);
+    let (env, client, quest_client, owner) = setup();
+    create_ms(&env, &client, &quest_client, &owner, 0, "Task", 100);
     client.set_distribution_mode(&owner, &0, &DistributionMode::Competitive(2), &0);
 
     let e1 = Address::generate(&env);
@@ -266,8 +267,8 @@ fn test_competitive_mode_first_winners_rewarded() {
 
 #[test]
 fn test_competitive_mode_exhausted_gets_nothing() {
-    let (env, client, owner) = setup();
-    create_ms(&env, &client, &owner, 0, "Task", 100);
+    let (env, client, quest_client, owner) = setup();
+    create_ms(&env, &client, &quest_client, &owner, 0, "Task", 100);
     client.set_distribution_mode(&owner, &0, &DistributionMode::Competitive(2), &0);
 
     let e1 = Address::generate(&env);
@@ -282,9 +283,9 @@ fn test_competitive_mode_exhausted_gets_nothing() {
 
 #[test]
 fn test_competitive_mode_counts_per_milestone() {
-    let (env, client, owner) = setup();
-    create_ms(&env, &client, &owner, 0, "Task 1", 100);
-    create_ms(&env, &client, &owner, 0, "Task 2", 200);
+    let (env, client, quest_client, owner) = setup();
+    create_ms(&env, &client, &quest_client, &owner, 0, "Task 1", 100);
+    create_ms(&env, &client, &quest_client, &owner, 0, "Task 2", 200);
     client.set_distribution_mode(&owner, &0, &DistributionMode::Competitive(1), &0);
 
     let e1 = Address::generate(&env);
@@ -294,6 +295,8 @@ fn test_competitive_mode_counts_per_milestone() {
     assert_eq!(client.verify_completion(&owner, &0, &0, &e2), 0);
     // Milestone 1: e2 is the winner (fresh count)
     assert_eq!(client.verify_completion(&owner, &0, &1, &e2), 200);
+}
+
 // ---- Security tests ----
 
 /// CRIT-01: Any address that calls create_milestone first for a quest_id
@@ -314,6 +317,7 @@ fn test_milestone_ownership_race_condition() {
         &String::from_str(&env, "Legitimate Quest"),
         &String::from_str(&env, "Description"),
         &Address::generate(&env), // token address
+        &quest::Visibility::Public,
     );
 
     // Attacker tries to call create_milestone first for quest 0
