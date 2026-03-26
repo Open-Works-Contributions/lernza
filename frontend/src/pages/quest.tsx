@@ -229,14 +229,20 @@ export function QuestView() {
   const [statsRef, statsInView] = useInView()
   const [contentRef, contentInView] = useInView()
 
-  const totalReward = milestones.reduce((sum, m) => sum + Number(m.rewardAmount), 0)
+  const totalReward = milestones.reduce(
+    (sum: number, m: MilestoneInfo) => sum + Number(m.rewardAmount),
+    0
+  )
+  type Completion = { milestoneId: number; enrollee: string; completed: boolean }
   const completedMilestones = new Set(
-    localCompletions.filter(c => c.completed).map(c => c.milestoneId)
+    localCompletions.filter((c: Completion) => c.completed).map((c: Completion) => c.milestoneId)
   ).size
   const isComplete = completedMilestones === milestones.length && milestones.length > 0
   const earnedReward = milestones
-    .filter(m => localCompletions.some(c => c.milestoneId === m.id && c.completed))
-    .reduce((sum, m) => sum + Number(m.rewardAmount), 0)
+    .filter((m: MilestoneInfo) =>
+      localCompletions.some((c: Completion) => c.milestoneId === m.id && c.completed)
+    )
+    .reduce((sum: number, m: MilestoneInfo) => sum + Number(m.rewardAmount), 0)
 
   const closeAddEnrollee = useCallback(() => {
     setShowAddEnrollee(false)
@@ -598,7 +604,6 @@ export function QuestView() {
                 className="flex-1 sm:flex-none"
               />
             </div>
-
           </div>
         </div>
       </div>
@@ -1035,17 +1040,18 @@ export function QuestView() {
               </CardContent>
             </Card>
           ) : (
-            localEnrollees.map((addr, i) => {
+            localEnrollees.map((addr: string, i: number) => {
+              type Completion = { milestoneId: number; enrollee: string; completed: boolean }
               const completed = localCompletions.filter(
-                c => c.enrollee === addr && c.completed
+                (c: Completion) => c.enrollee === addr && c.completed
               ).length
               const earned = milestones
-                .filter(m =>
+                .filter((m: MilestoneInfo) =>
                   localCompletions.some(
-                    c => c.enrollee === addr && c.milestoneId === m.id && c.completed
+                    (c: Completion) => c.enrollee === addr && c.milestoneId === m.id && c.completed
                   )
                 )
-                .reduce((sum, m) => sum + Number(m.rewardAmount), 0)
+                .reduce((sum: number, m: MilestoneInfo) => sum + Number(m.rewardAmount), 0)
               const isAllDone = completed === milestones.length && milestones.length > 0
 
               return (
