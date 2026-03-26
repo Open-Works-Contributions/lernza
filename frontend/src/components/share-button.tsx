@@ -70,7 +70,6 @@ export function ShareButton({
     setPos({
       top: rect.bottom + window.scrollY + 8,
       right: window.innerWidth - rect.right,
-      left: rect.left,
     })
   }, [])
 
