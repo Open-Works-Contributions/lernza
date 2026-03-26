@@ -146,7 +146,9 @@ function Step1Form({
     defaultValues,
   })
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const nameValue = watch("name", "")
+  // eslint-disable-next-line react-hooks/incompatible-library
   const descValue = watch("description", "")
 
   return (
@@ -272,6 +274,7 @@ function Step2Form({
     name: "milestones",
   })
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const milestones = watch("milestones")
   const totalReward = milestones.reduce((sum: number, m: z.infer<typeof milestoneSchema>) => {
     const n = Number(m.rewardAmount)
